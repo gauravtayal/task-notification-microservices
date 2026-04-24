@@ -1,18 +1,19 @@
-import { Injectable } from '@nestjs/common';
-import { connect, Connection, Channel } from 'amqplib';
+import { Injectable, Inject } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
+import { Connection } from 'amqplib';
 
 @Injectable()
 export class TasksService {
+  constructor(
+    @Inject('TASK_SERVICE') private client: ClientProxy,
+  ) {}
   async createTask(task: { title: string; deadline: string }): Promise<any> {
     // Implement task creation logic here
     let connection: Connection | null = null;
     try {
-      connection = await connect('amqp://localhost');
-      const channel: Channel = await connection.createChannel();
-      const queue = 'tasks_notifications';
-      await channel.assertQueue(queue, { durable: true });
-      channel.sendToQueue(queue, Buffer.from(JSON.stringify(task)));
-
+      // Connect to RabbitMQ and publish the task notification
+      console.log('Task Created:', task);
+      this.client.emit('task_created', task);
       return { message: 'Task created successfully', task };
     } finally {
       if (connection) {
